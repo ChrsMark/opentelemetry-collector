@@ -98,6 +98,10 @@ func (md *Metadata) Validate() error {
 		errs = errors.Join(errs, err)
 	}
 
+	if err := md.validateMigrations(); err != nil {
+		errs = errors.Join(errs, err)
+	}
+
 	if err := md.validateFeatureGates(); err != nil {
 		errs = errors.Join(errs, err)
 	}
@@ -140,6 +144,37 @@ func (md *Metadata) validateResourceAttributes() error {
 		}
 		if attr.EnabledPtr == nil {
 			errs = errors.Join(errs, fmt.Errorf("enabled field is required for resource attribute: %v", name))
+		}
+	}
+	return errs
+}
+
+// validateMigrations verifies that any metric-level migration references valid
+// target metrics and existing feature gates.
+func (md *Metadata) validateMigrations() error {
+	var errs error
+	if len(md.Metrics) == 0 {
+		return nil
+	}
+	// Build set of available gates for fast lookup.
+	gates := make(map[FeatureGateID]struct{}, len(md.FeatureGates))
+	for _, g := range md.FeatureGates {
+		gates[g.ID] = struct{}{}
+	}
+	for mn, m := range md.Metrics {
+		if m.Migration == nil {
+			continue
+		}
+		// Target must exist.
+		if _, ok := md.Metrics[m.Migration.To]; !ok {
+			errs = errors.Join(errs, fmt.Errorf(`metric "%v": migration.to refers to undefined metric "%v"`, mn, m.Migration.To))
+		}
+		// Gates must exist.
+		if _, ok := gates[m.Migration.ThroughGates.DisableOld]; !ok || m.Migration.ThroughGates.DisableOld == "" {
+			errs = errors.Join(errs, fmt.Errorf(`metric "%v": migration.through_gates.disable_old must reference an existing feature gate`, mn))
+		}
+		if _, ok := gates[m.Migration.ThroughGates.EnableNew]; !ok || m.Migration.ThroughGates.EnableNew == "" {
+			errs = errors.Join(errs, fmt.Errorf(`metric "%v": migration.through_gates.enable_new must reference an existing feature gate`, mn))
 		}
 	}
 	return errs

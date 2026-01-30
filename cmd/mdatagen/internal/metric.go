@@ -39,6 +39,11 @@ type Metric struct {
 	// Unit of the metric.
 	Unit *string `mapstructure:"unit"`
 
+	// NameOverride can be used to override the emitted metric name.
+	// This is useful for versioned keys (e.g. v1.system.cpu.utilization) that
+	// should still emit under a stable user-facing name (e.g. system.cpu.utilization).
+	NameOverride string `mapstructure:"name"`
+
 	// Sum stores metadata for sum metric type
 	Sum *Sum `mapstructure:"sum,omitempty"`
 	// Gauge stores metadata for gauge metric type
@@ -48,6 +53,9 @@ type Metric struct {
 
 	// Override the default prefix for the metric name.
 	Prefix string `mapstructure:"prefix"`
+
+	// Migration describes dual-emission behavior controlled by feature gates.
+	Migration *MetricMigration `mapstructure:"migration"`
 }
 
 type Stability struct {
@@ -408,4 +416,19 @@ func (d *Histogram) Unmarshal(parser *confmap.Conf) error {
 
 func (d *Histogram) IsAsync() bool {
 	return d.Async
+}
+
+// MetricMigration defines dual-emission mapping and feature gates.
+type MetricMigration struct {
+	// To is the target metric key in the same metadata file.
+	To MetricName `mapstructure:"to"`
+	// ThroughGates lists the gates controlling emission of old/new.
+	ThroughGates MigrationGates `mapstructure:"through_gates"`
+}
+
+type MigrationGates struct {
+	// DisableOld gate, when enabled, disables old emission.
+	DisableOld FeatureGateID `mapstructure:"disable_old"`
+	// EnableNew gate, when enabled, enables new emission.
+	EnableNew FeatureGateID `mapstructure:"enable_new"`
 }
