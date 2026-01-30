@@ -1,0 +1,91 @@
+type: sample
+display_name: Sample Migration Scraper
+description: Demonstrates dual-schema metric migration with feature gates and name aliasing.
+github_project: open-telemetry/opentelemetry-collector
+
+status:
+  disable_codecov_badge: true
+  class: scraper
+  stability:
+    beta: [metrics]
+  distributions: []
+
+feature_gates:
+  - id: receiver.hostmetrics.DontEmitV0SystemConventions
+    description: When enabled, semconv legacy attributes are disabled.
+    stage: alpha
+    from_version: v0.145.0
+    reference_url: https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/45592
+  - id: receiver.hostmetrics.EmitV1SystemConventions
+    description: When enabled, semconv stable attributes are enabled.
+    stage: alpha
+    from_version: v0.145.0
+    reference_url: https://github.com/open-telemetry/opentelemetry-collector-contrib/issues/45592
+
+metrics:
+  # Metric that has been renamed (legacy -> new)
+  linux.memory.available:
+    enabled: false
+    description: Legacy Linux available memory estimate.
+    stability:
+      level: beta
+    unit: By
+    sum:
+      value_type: int
+      aggregation_temporality: cumulative
+      monotonic: false
+    migration:
+      to: system.memory.linux.available
+      through_gates:
+        disable_old: receiver.hostmetrics.DontEmitV0SystemConventions
+        enable_new: receiver.hostmetrics.EmitV1SystemConventions
+
+  # Completely new metric introduced normally
+  system.cpu.foo:
+    enabled: false
+    description: Example v1-only metric, disabled by default.
+    stability:
+      level: beta
+    unit: "1"
+    gauge:
+      value_type: double
+
+  # Metric that keeps the same visible name but changes type (gauge -> sum)
+  system.cpu.utilization:
+    enabled: true
+    description: CPU utilization as a ratio.
+    stability:
+      level: beta
+    unit: "1"
+    gauge:
+      value_type: double
+    migration:
+      to: v1.system.cpu.utilization
+      through_gates:
+        disable_old: receiver.hostmetrics.DontEmitV0SystemConventions
+        enable_new: receiver.hostmetrics.EmitV1SystemConventions
+
+  system.memory.linux.available:
+    enabled: false
+    description: An estimate of how much memory is available without swapping. (Linux only)
+    stability:
+      level: beta
+    unit: By
+    sum:
+      value_type: int
+      aggregation_temporality: cumulative
+      monotonic: false
+
+  v1.system.cpu.utilization:
+    # Emit under the stable user-facing name
+    name: system.cpu.utilization
+    enabled: true
+    description: CPU utilization as a monotonic cumulative sum.
+    stability:
+      level: beta
+    unit: "1"
+    sum:
+      value_type: double
+      aggregation_temporality: cumulative
+      monotonic: true
+
