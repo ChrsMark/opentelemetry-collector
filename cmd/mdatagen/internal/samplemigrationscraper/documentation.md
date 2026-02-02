@@ -20,6 +20,14 @@ CPU utilization as a ratio.
 | ---- | ----------- | ---------- | --------- |
 | 1 | Gauge | Double | Beta |
 
+#### Migration
+
+- Target Metric: `v1.system.cpu.utilization`
+- Disable Old Gate: `receiver.hostmetrics.DontEmitV0SystemConventions`
+- Enable New Gate: `receiver.hostmetrics.EmitV1SystemConventions`
+
+When the disable-old gate is enabled, emission of this metric is suppressed. When the enable-new gate is enabled, the target metric is emitted. If both gates are disabled, only this metric is emitted; if both are enabled, dual emission occurs.
+
 ### v1.system.cpu.utilization
 
 CPU utilization as a monotonic cumulative sum.
@@ -27,6 +35,8 @@ CPU utilization as a monotonic cumulative sum.
 | Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
 | ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
 | 1 | Sum | Double | Cumulative | true | Beta |
+
+Emitted Name: `system.cpu.utilization`
 
 ## Optional Metrics
 
@@ -45,6 +55,14 @@ Legacy Linux available memory estimate.
 | Unit | Metric Type | Value Type | Aggregation Temporality | Monotonic | Stability |
 | ---- | ----------- | ---------- | ----------------------- | --------- | --------- |
 | By | Sum | Int | Cumulative | false | Beta |
+
+#### Migration
+
+- Target Metric: `system.memory.linux.available`
+- Disable Old Gate: `receiver.hostmetrics.DontEmitV0SystemConventions`
+- Enable New Gate: `receiver.hostmetrics.EmitV1SystemConventions`
+
+When the disable-old gate is enabled, emission of this metric is suppressed. When the enable-new gate is enabled, the target metric is emitted. If both gates are disabled, only this metric is emitted; if both are enabled, dual emission occurs.
 
 ### system.cpu.foo
 
